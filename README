@@ -1,0 +1,48 @@
+SQLCrypt
+========
+
+Lots of ActiveRecord attributes need encryption (passwords, salary information, account balances, etc.)
+Typically this encryption is handled in Ruby code. However, there are two problems with this: it can be slow,
+especially if encrypting/decrypting for large numbers of model objects; and if multiple applications
+in different languages are accessing the encrypted fields in the database, you have to make sure the
+encryption algorithms match.
+
+SQLCrypt remedies these problems by allowing attributes to be specified as encrypted using database
+encryption functions.
+
+Right now, the only database encryption function supported is MySQL aes_encrypt/aes_decrypt, which
+expects an encrypted field of type string. See "Extending" below for how to support other databases. 
+
+
+Example
+=======
+
+class Account < ActiveRecord::Base
+  sql_encrypted :balance, :key => 'my_secret_key'
+
+
+For the MySQL adapter, this will cause the "balance" field to be stored as
+
+hex(aes_encrypt(actual_balance, 'my_secret_key'))
+
+and retrieved using
+
+aes_decrypt(unhex(balance), 'my_secret_key')
+
+
+Extending
+=========
+
+Support for additional databases can be added by adding a module named "<database_adapter_name>_encryption" 
+to the lib/adapters directory. The module must implement two methods:
+
+encryption_find(name, key, options) to specify the SQL for reading the column 
+encryption_set(name, key, options) to specify the SQL for persisting to the column
+
+where "name" is the field name of the attribute and "key" is the secret key specified in sql_encrypted.
+
+SQLCrypt automatically tries to load the module that corresponds with the name of the database adapter for
+the ActiveRecord class using it. If the adapter is not present, an error is thrown.
+
+
+Copyright (c) 2009 Monica McArthur (mechaferret@gmail.com), released under the MIT license
