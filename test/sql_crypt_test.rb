@@ -3,14 +3,15 @@ include SQLCrypt
 require 'fixtures/account.rb'
 
 class SqlCryptTest < ActiveSupport::TestCase
+  
   test "no key raises exception" do
     assert_raise(NoEncryptionKey) {
       Account.sql_encrypted(:balance, {})
     }
   end
 
-  test "each encrypted attribute is added" do
-    Account.sql_encrypted(:balance, :key => 'test1')
+  test "each encrypted attribute is added when added in sequence" do
+    # :balance is encrypted in model class definition
 		assert Account.encrypteds.size==1
 		assert Account.encrypteds.first[:name] == :balance
 		assert Account.encrypteds.first[:key] == 'test1'
@@ -22,15 +23,22 @@ class SqlCryptTest < ActiveSupport::TestCase
 		assert Account.encrypteds.last[:key] == 'test2'
   end
   
+  test "multiple encrypted attribute can be added" do
+    Account.sql_encrypted(:acct_number, :password, :key => 'test4')
+		assert Account.encrypteds.size==4
+		assert Account.encrypteds[2][:name] == :acct_number
+		assert Account.encrypteds[2][:key] == 'test4'
+		assert Account.encrypteds.last[:name] == :password
+		assert Account.encrypteds.last[:key] == 'test4'
+  end
+  
   test "encrypted attribute is stored locally" do
-    Account.sql_encrypted(:balance, :key => 'test1')
 		acc = Account.new
 		acc.balance = '100'
 		assert acc.read_attribute("balance_decrypted")=='100'
   end
   
   test "encrypted attribute is retrieved from the right place" do
-    Account.sql_encrypted(:balance, :key => 'test1')
 		acc = Account.new
 		acc.balance = '100'
 		assert acc.balance=='100'
@@ -38,16 +46,16 @@ class SqlCryptTest < ActiveSupport::TestCase
   end
   
   test "encrypted attribute is persisted to database" do
-    Account.sql_encrypted(:balance, :key => 'test1')
 		acc = Account.new
 		acc.balance = '100'
 		acc.save
 		fetched_from_db = acc.connection.select_value("select balance from accounts where id=#{acc.id}")
-		assert fetched_from_db==@@expectations[acc.connection.adapter_name]["account-100"]
+		expected = acc.connection.select_value("select hex(aes_encrypt('100','test1_#{acc.id}'))")
+		puts "expected is #{expected}"
+		assert fetched_from_db==expected
   end
   
   test "encrypted attribute is retrieved from database" do
-    Account.sql_encrypted(:balance, :key => 'test1')
 		acc = Account.new
 		acc.balance = '100'
 		acc.save

@@ -19,6 +19,5 @@ class ActiveSupport::TestCase
   self.use_transactional_fixtures = false
   self.use_instantiated_fixtures = false
   fixtures :all
-	@@expectations = YAML::load(IO.read(File.dirname(__FILE__) + '/expected_by_db.yml'))
 
 end

@@ -29,33 +29,38 @@ module SQLCrypt
 			@@sql_crypt_initialized = true
 		end
 		
-		def sql_encrypted(name, options={})
-			raise NoEncryptionKey unless options[:key]			
+		def sql_encrypted(*args)
+			raise NoEncryptionKey unless args.last[:key]			
 			self.initialize_sql_crypt
-			secret_key = options[:key]
+			secret_key = args.last[:key]
+			args.delete args.last
 			
-			self.encrypteds << {:name=>name, :key=>secret_key}
-      module_eval <<-"end_eval"
-        def #{name}
-					self.read_attribute("#{name}_decrypted")
-				end
+			args.each { |name| 
+  			self.encrypteds << {:name=>name, :key=>secret_key}
+        module_eval <<-"end_eval"
+          def #{name}
+  					self.read_attribute("#{name}_decrypted")
+  				end
 
-        def #{name}=(value)
-					self.write_attribute("#{name}_decrypted", value)
-        end
-      end_eval
+          def #{name}=(value)
+  					self.write_attribute("#{name}_decrypted", value)
+          end
+        end_eval
+      }
 		end
 	end
 	
 	module InstanceMethods
 	  def find_encrypted
 			encrypted_find = self.class.encrypteds.collect{|y| encryption_find(y[:name], y[:key])}.join(',')
+			puts "finding with #{encrypted_find}"
 	    encrypteds = connection.select_one("select #{encrypted_find} from #{self.class.table_name} where #{self.class.primary_key}=#{self.id}")
 	    encrypteds.each {|k, v| self.write_attribute("#{k}_decrypted", v) }
 	  end
 
 	  def save_encrypted
 			encrypted_save = self.class.encrypteds.collect{|y| encryption_set(y[:name], y[:key])}.join(',')
+			puts "saving with #{encrypted_save}"
 	    connection.execute("update #{self.class.table_name} set #{encrypted_save} where #{self.class.primary_key}=#{self.id}")
 	  end
 	end
