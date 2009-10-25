@@ -33,7 +33,7 @@ aes_decrypt(unhex(balance), 'my_secret_key_#{id}')
 id is the primary key of the account; this guarantees that the same value will encrypt to different 
 results in different records (thus making deducing anything from database inspection more difficult).
 
-You can specify multiple fields on the same line if they are using the same key; using separate lines for different keys. For example,
+You can specify multiple fields on the same line if they are using the same key; use separate lines for different keys. For example,
 
   sql_encrypted :cc_number, :ssn, :key => 'fIn^nce-dan{}er'
   sql_encrypted :password, :key => 'password'
