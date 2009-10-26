@@ -25,7 +25,9 @@ module SQLCrypt
 			after_find :find_encrypted
 			after_save :save_encrypted
 			cattr_accessor :encrypteds
+			cattr_accessor :converters
 			self.encrypteds = Array.new
+			self.converters = Hash.new
 			@@sql_crypt_initialized = true
 		end
 		
@@ -33,10 +35,12 @@ module SQLCrypt
 			raise NoEncryptionKey unless args.last[:key]			
 			self.initialize_sql_crypt
 			secret_key = args.last[:key]
+			decrypted_converter = args.last[:converter]
 			args.delete args.last
 			
 			args.each { |name| 
   			self.encrypteds << {:name=>name, :key=>secret_key}
+				self.converters[name] = decrypted_converter
         module_eval <<-"end_eval"
           def #{name}
   					self.read_attribute("#{name}_decrypted")
@@ -53,16 +57,19 @@ module SQLCrypt
 	module InstanceMethods
 	  def find_encrypted
 			encrypted_find = self.class.encrypteds.collect{|y| encryption_find(y[:name], y[:key])}.join(',')
-			puts "finding with #{encrypted_find}"
 	    encrypteds = connection.select_one("select #{encrypted_find} from #{self.class.table_name} where #{self.class.primary_key}=#{self.id}")
-	    encrypteds.each {|k, v| self.write_attribute("#{k}_decrypted", v) }
+	    encrypteds.each {|k, v| self.write_attribute("#{k}_decrypted", convert(k, v)) }
 	  end
 
 	  def save_encrypted
 			encrypted_save = self.class.encrypteds.collect{|y| encryption_set(y[:name], y[:key])}.join(',')
-			puts "saving with #{encrypted_save}"
 	    connection.execute("update #{self.class.table_name} set #{encrypted_save} where #{self.class.primary_key}=#{self.id}")
 	  end
+	
+		def convert(name, value)
+			converter = self.class.converters[name.to_sym]
+			converter.nil? ? value : value.send(converter)		
+		end
 	end
 	
 end

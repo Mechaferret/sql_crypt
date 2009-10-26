@@ -12,22 +12,22 @@ class SqlCryptTest < ActiveSupport::TestCase
 
   test "each encrypted attribute is added when added in sequence" do
     # :balance is encrypted in model class definition
-		assert Account.encrypteds.size==1
+		assert Account.encrypteds.size==2
 		assert Account.encrypteds.first[:name] == :balance
 		assert Account.encrypteds.first[:key] == 'test1'
     Account.sql_encrypted(:name, :key => 'test2')
-		assert Account.encrypteds.size==2
+		assert Account.encrypteds.size==3
 		assert Account.encrypteds.first[:name] == :balance
 		assert Account.encrypteds.first[:key] == 'test1'
 		assert Account.encrypteds.last[:name] == :name
 		assert Account.encrypteds.last[:key] == 'test2'
   end
   
-  test "multiple encrypted attribute can be added" do
+  test "multiple encrypted attributes can be added" do
     Account.sql_encrypted(:acct_number, :password, :key => 'test4')
-		assert Account.encrypteds.size==4
-		assert Account.encrypteds[2][:name] == :acct_number
-		assert Account.encrypteds[2][:key] == 'test4'
+		assert Account.encrypteds.size==5
+		assert Account.encrypteds[3][:name] == :acct_number
+		assert Account.encrypteds[3][:key] == 'test4'
 		assert Account.encrypteds.last[:name] == :password
 		assert Account.encrypteds.last[:key] == 'test4'
   end
@@ -51,7 +51,6 @@ class SqlCryptTest < ActiveSupport::TestCase
 		acc.save
 		fetched_from_db = acc.connection.select_value("select balance from accounts where id=#{acc.id}")
 		expected = acc.connection.select_value("select hex(aes_encrypt('100','test1_#{acc.id}'))")
-		puts "expected is #{expected}"
 		assert fetched_from_db==expected
   end
   
@@ -67,4 +66,13 @@ class SqlCryptTest < ActiveSupport::TestCase
 		acc3 = Account.find(acc.id)
 		assert acc3.balance == '220'
   end
+
+  test "encrypted attribute uses specified type" do
+		acc = Account.new
+		acc.balance_as_float = 150
+		acc.save
+		acc2 = Account.find(acc.id)
+		assert acc2.balance_as_float == 150
+	end
+
 end

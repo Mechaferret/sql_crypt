@@ -11,7 +11,8 @@ SQLCrypt remedies these problems by allowing attributes to be specified as encry
 encryption functions.
 
 Right now, the only database encryption function supported is MySQL aes_encrypt/aes_decrypt, which
-expects an encrypted field of type string. See "Extending" below for how to support other databases. 
+expects the database column for the field to be of type string. See "Extending" below for how to 
+support other databases. 
 
 
 Example
@@ -39,6 +40,12 @@ You can specify multiple fields on the same line if they are using the same key;
   sql_encrypted :password, :key => 'password'
 
 will encrypt "cc_number" and "ssn" using the key 'fIn^nce-dan{}er' and "password" using the key 'password'.
+
+You can also specify a function to convert the encrypted field to the type you want (otherwise it will default to String). For example
+
+	sql_encrypted :balance, :key => 'finstuff', converter => :to_f
+	
+will run to_f on the String that is returned from decryption, so that the final attribute value is of type Float.
 
 
 Extending
