@@ -35,14 +35,14 @@ class SqlCryptTest < ActiveSupport::TestCase
   test "encrypted attribute is stored locally" do
 		acc = Account.new
 		acc.balance = '100'
-		assert acc.read_attribute("balance_decrypted")=='100'
+		assert acc.read_encrypted_value("balance_decrypted")=='100'
   end
   
   test "encrypted attribute is retrieved from the right place" do
 		acc = Account.new
 		acc.balance = '100'
 		assert acc.balance=='100'
-		assert acc.balance==acc.read_attribute("balance_decrypted")
+		assert acc.balance==acc.read_encrypted_value("balance_decrypted")
   end
   
   test "encrypted attribute is persisted to database" do

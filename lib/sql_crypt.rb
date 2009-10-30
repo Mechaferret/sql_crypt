@@ -16,6 +16,7 @@ module SQLCrypt
 			already_done = (!self.encrypteds.empty? rescue false)
 			return if already_done
       include InstanceMethods
+      include InstanceMethods::SQLCryptMethods
 			begin
 				include "#{self.connection.adapter_name}Encryption".constantize
 			rescue
@@ -43,11 +44,11 @@ module SQLCrypt
 				self.converters[name] = decrypted_converter
         module_eval <<-"end_eval"
           def #{name}
-  					self.read_attribute("#{name}_decrypted")
+  					self.read_encrypted_value("#{name}_decrypted")
   				end
 
           def #{name}=(value)
-  					self.write_attribute("#{name}_decrypted", value)
+  					self.write_encrypted_value("#{name}_decrypted", value)
           end
         end_eval
       }
@@ -58,7 +59,7 @@ module SQLCrypt
 	  def find_encrypted
 			encrypted_find = self.class.encrypteds.collect{|y| encryption_find(y[:name], y[:key])}.join(',')
 	    encrypteds = connection.select_one("select #{encrypted_find} from #{self.class.table_name} where #{self.class.primary_key}=#{self.id}")
-	    encrypteds.each {|k, v| self.write_attribute("#{k}_decrypted", convert(k, v)) }
+	    encrypteds.each {|k, v| write_encrypted_value("#{k}_decrypted", convert(k, v)) }
 	  end
 
 	  def save_encrypted
@@ -69,6 +70,17 @@ module SQLCrypt
 		def convert(name, value)
 			converter = self.class.converters[name.to_sym]
 			converter.nil? ? value : value.send(converter)		
+		end
+		
+		module SQLCryptMethods
+			def read_encrypted_value(name)
+				@sql_crypt_data[name] rescue nil
+			end
+			
+			def write_encrypted_value(name, value)
+				@sql_crypt_data = Hash.new if @sql_crypt_data.nil?
+				@sql_crypt_data[name] = value
+			end
 		end
 	end
 	

@@ -4,6 +4,6 @@ module MySQLEncryption
 	end
 	
 	def encryption_set(name, key, options={})
-		"#{name}=hex(aes_encrypt('#{self.read_attribute("#{name}_decrypted")}', '#{key}_#{self.id}'))"	
+		"#{name}=hex(aes_encrypt('#{self.read_encrypted_value("#{name}_decrypted")}', '#{key}_#{self.id}'))"	
 	end
 end
