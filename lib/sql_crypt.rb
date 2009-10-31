@@ -59,11 +59,12 @@ module SQLCrypt
 	  def find_encrypted
 			encrypted_find = self.class.encrypteds.collect{|y| encryption_find(y[:name], y[:key])}.join(',')
 	    encrypteds = connection.select_one("select #{encrypted_find} from #{self.class.table_name} where #{self.class.primary_key}=#{self.id}")
-	    encrypteds.each {|k, v| write_encrypted_value("#{k}_decrypted", convert(k, v)) }
+	    encrypteds.each {|k, v| write_encrypted_value("#{k}_decrypted", convert(k, v), false) }
 	  end
 
 	  def save_encrypted
-			encrypted_save = self.class.encrypteds.collect{|y| encryption_set(y[:name], y[:key])}.join(',')
+			encrypted_save = self.class.encrypteds.collect{|y| encryption_set(y[:name], y[:key]) if encrypted_changed?(y[:name])}.delete_if{|c|c.blank?}.join(',')
+			return if encrypted_save.blank? # no changes to save
 	    connection.execute("update #{self.class.table_name} set #{encrypted_save} where #{self.class.primary_key}=#{self.id}")
 	  end
 	
@@ -77,9 +78,32 @@ module SQLCrypt
 				@sql_crypt_data[name] rescue nil
 			end
 			
-			def write_encrypted_value(name, value)
+			def write_encrypted_value(name, value, check_changed=true)
 				@sql_crypt_data = Hash.new if @sql_crypt_data.nil?
+				@sql_crypt_changed = Hash.new if @sql_crypt_changed.nil?
+				if check_changed
+  				old_value = encrypted_orig_value(name)
+  				if value!=old_value
+    				@sql_crypt_changed[name] ||= Hash.new
+    				@sql_crypt_changed[name][:old] = old_value
+    				@sql_crypt_changed[name][:new] = value
+    			else
+    			  @sql_crypt_changed[name] = nil
+  				end
+  			end
 				@sql_crypt_data[name] = value
+			end
+			
+			def encrypted_orig_value(name)
+			  @sql_crypt_changed[name][:old] rescue read_encrypted_value(name)
+			end
+			
+			def encrypted_changed?(name)
+			  @sql_crypt_changed["#{name}_decrypted"]
+			end
+			
+			def enc_chg
+			  @sql_crypt_changed
 			end
 		end
 	end

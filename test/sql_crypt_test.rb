@@ -75,4 +75,46 @@ class SqlCryptTest < ActiveSupport::TestCase
 		assert acc2.balance_as_float == 150
 	end
 
+  test "encryption changes are true when attribute is changed" do
+		acc = Account.new
+		acc.balance_as_float = 150
+		acc.save
+		acc2 = Account.find(acc.id)
+		acc2.balance_as_float = 180
+		assert acc2.encrypted_changed?(:balance_as_float)
+	end
+
+  test "encryption changes are false when attribute is not changed" do
+		acc = Account.new
+		acc.balance_as_float = 150
+		acc.save
+		acc2 = Account.find(acc.id)
+		acc2.balance_as_float = 150
+		assert !acc2.encrypted_changed?(:balance_as_float)
+	end
+
+  test "encryption changes are false when attribute is changed and then changed back" do
+		acc = Account.new
+		acc.balance_as_float = 150
+		acc.save
+		acc2 = Account.find(acc.id)
+		acc2.balance_as_float = 180
+		assert acc2.encrypted_changed?(:balance_as_float)
+		acc2.balance_as_float = 150
+		assert !acc2.encrypted_changed?(:balance_as_float)
+	end
+
+  test "nonchanged attributes are not persisted (and therefore don't overwrite changed ones)" do
+		acc = Account.new
+		acc.balance_as_float = 150
+		acc.save
+		acc2 = Account.find(acc.id)
+		acc2.balance_as_float = 180
+		acc3 = Account.find(acc.id)
+		acc2.save
+		acc3.save
+		acc4 = Account.find(acc.id)
+		assert acc4.balance_as_float == 180
+	end
+
 end
