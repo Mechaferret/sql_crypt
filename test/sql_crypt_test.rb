@@ -117,4 +117,12 @@ class SqlCryptTest < ActiveSupport::TestCase
 		assert acc4.balance_as_float == 180
 	end
 
+  test "nonencrypted attribute is still persisted to and retrieved from database even if no encryption happens" do
+		acc = Account.new
+		acc.normal_attribute = 'hello'
+		acc.save
+		acc2 = Account.find(acc.id)
+		assert acc2.normal_attribute == 'hello'
+  end
+
 end

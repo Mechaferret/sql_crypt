@@ -99,7 +99,7 @@ module SQLCrypt
 			end
 			
 			def encrypted_changed?(name)
-			  @sql_crypt_changed["#{name}_decrypted"]
+			  @sql_crypt_changed["#{name}_decrypted"] rescue false
 			end
 			
 			def enc_chg
