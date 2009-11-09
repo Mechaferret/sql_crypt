@@ -40,6 +40,7 @@ module SQLCrypt
 			args.delete args.last
 			
 			args.each { |name| 
+			  attr_protected name
   			self.encrypteds << {:name=>name, :key=>secret_key}
 				self.converters[name] = decrypted_converter
         module_eval <<-"end_eval"
